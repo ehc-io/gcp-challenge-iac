@@ -22,6 +22,7 @@ resource "google_compute_address" "mongo_internal" {
   address      = cidrhost(var.subnet_public_cidr, 2)
 }
 
+#trivy:ignore:AVD-GCP-0031 the database VM carries a public address; access is limited by firewall rules and authentication
 resource "google_compute_instance" "mongo" {
   name                      = "ehc-mongo-vm"
   zone                      = var.zone

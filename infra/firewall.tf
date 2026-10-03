@@ -38,13 +38,6 @@ resource "google_compute_firewall" "mongo_from_gke" {
   }
 }
 
-# The application's serving port, read from the Kubernetes Deployment (container "tasky", port "http")
-# so this rule cannot drift from the port the load balancer actually targets.
-locals {
-  app_container = one([for c in yamldecode(file("${path.module}/../k8s/deployment.yaml")).spec.template.spec.containers : c if c.name == "tasky"])
-  app_port      = tostring(one([for p in local.app_container.ports : p.containerPort if p.name == "http"]))
-}
-
 # Google Front Ends -> application Pods. The external Application Load Balancer proxies client
 # requests and sends health-check probes from these same Google ranges, to Pod IPs (NEG) on the app port.
 resource "google_compute_firewall" "lb_to_gke" {
@@ -58,7 +51,7 @@ resource "google_compute_firewall" "lb_to_gke" {
 
   allow {
     protocol = "tcp"
-    ports    = [local.app_port]
+    ports    = [var.app_port]
   }
 
   log_config {
