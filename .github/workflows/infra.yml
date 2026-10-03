@@ -30,7 +30,7 @@ jobs:
         with:
           version: v0.75.0
           scan-type: config
-          scan-ref: infra
+          scan-ref: .
           severity: HIGH,CRITICAL
           exit-code: "1"
           format: sarif
