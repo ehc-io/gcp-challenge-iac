@@ -81,17 +81,23 @@ resource "google_storage_bucket_iam_member" "deployer_iac_state" {
   member = google_service_account.deployer_iac.member
 }
 
-# Application identity: used by the application repository only.
-# Registry write on one repository, scan, and cluster connect; Kubernetes RBAC grants the rest.
+# Application identity: production deployments of the application repository only.
+# Registry write on one repository and cluster connect; Kubernetes RBAC grants the rest.
 resource "google_service_account" "deployer_app" {
   account_id   = "ehc-deployer-app"
   display_name = "Application deployer (GitHub Actions)"
 }
 
+locals {
+  # GitHub OIDC subject (immutable format) of jobs running in the application repository's
+  # "production" environment. GitHub only admits main-branch runs approved by a reviewer.
+  github_app_deploy_subject = "repo:ehc-io@24269599/gcp-challenge-app@1401507441:environment:production"
+}
+
 resource "google_service_account_iam_member" "deployer_app_wif" {
   service_account_id = google_service_account.deployer_app.name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${local.github_repo_app}"
+  member             = "principal://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/subject/${local.github_app_deploy_subject}"
 }
 
 resource "google_artifact_registry_repository_iam_member" "deployer_app_writer" {
@@ -101,14 +107,27 @@ resource "google_artifact_registry_repository_iam_member" "deployer_app_writer" 
   member     = google_service_account.deployer_app.member
 }
 
-resource "google_project_iam_member" "deployer_app_scan" {
-  project = var.project_id
-  role    = "roles/ondemandscanning.admin"
-  member  = google_service_account.deployer_app.member
-}
-
 resource "google_project_iam_member" "deployer_app_cluster_viewer" {
   project = var.project_id
   role    = "roles/container.clusterViewer"
   member  = google_service_account.deployer_app.member
+}
+
+# Image scanning identity: any branch of the application repository, including pull requests.
+# On-Demand Scanning only: no registry write, no cluster access.
+resource "google_service_account" "scanner_app" {
+  account_id   = "ehc-scanner-app"
+  display_name = "Image scanner (GitHub Actions)"
+}
+
+resource "google_service_account_iam_member" "scanner_app_wif" {
+  service_account_id = google_service_account.scanner_app.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${local.github_repo_app}"
+}
+
+resource "google_project_iam_member" "scanner_app_scan" {
+  project = var.project_id
+  role    = "roles/ondemandscanning.admin"
+  member  = google_service_account.scanner_app.member
 }
