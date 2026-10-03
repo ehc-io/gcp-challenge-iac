@@ -35,6 +35,7 @@ jobs:
           exit-code: "1"
           format: sarif
           output: trivy-config.sarif
+          limit-severities-for-sarif: true
 
       - name: Upload scan results
         if: always()
