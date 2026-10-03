@@ -39,7 +39,7 @@ resource "google_monitoring_alert_policy" "cluster_admin_binding" {
   notification_channels = [google_monitoring_notification_channel.security_email.id]
 
   documentation {
-    content   = "A ClusterRoleBinding to cluster-admin was created. Review the principal and subject in the Admin Activity log and confirm the change was expected."
+    content   = "A ClusterRoleBinding to cluster-admin was created.\n\n- Principal: $${log.extracted_label.principal}\n- Binding: $${log.extracted_label.binding}\n\nReview the subject in the Admin Activity log and confirm the change was expected."
     mime_type = "text/markdown"
   }
 }
@@ -76,7 +76,7 @@ resource "google_monitoring_alert_policy" "binauthz_denial" {
   notification_channels = [google_monitoring_notification_channel.security_email.id]
 
   documentation {
-    content   = "Binary Authorization rejected a pod. The image is not from the allowed repository. Review the principal and image in the Admin Activity log."
+    content   = "Binary Authorization rejected a pod. The image is not from the allowed repository.\n\n- Principal: $${log.extracted_label.principal}\n- Pod: $${log.extracted_label.pod}\n\nReview the image in the Admin Activity log."
     mime_type = "text/markdown"
   }
 }
