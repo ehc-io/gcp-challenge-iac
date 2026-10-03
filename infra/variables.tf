@@ -154,3 +154,9 @@ variable "app_port" {
     error_message = "app_port must be a single unprivileged TCP port (1024-65535); ranges and lists are not allowed."
   }
 }
+
+variable "alert_email" {
+  description = "Address that receives security alert notifications"
+  type        = string
+  sensitive   = true
+}
