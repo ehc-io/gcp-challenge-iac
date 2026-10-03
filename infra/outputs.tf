@@ -79,5 +79,18 @@ output "app_ingress_ip" {
 }
 
 output "app_port" {
-  value = local.app_port
+  value = var.app_port
+}
+
+output "github_wif_provider" {
+  description = "Workload Identity Federation provider resource name for GitHub Actions"
+  value       = google_iam_workload_identity_pool_provider.github.name
+}
+
+output "deployer_service_accounts" {
+  description = "Deployer service account emails"
+  value = {
+    iac = google_service_account.deployer_iac.email
+    app = google_service_account.deployer_app.email
+  }
 }

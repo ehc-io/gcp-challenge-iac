@@ -12,6 +12,7 @@ resource "google_project_iam_member" "gke_nodes_default" {
   member  = google_service_account.gke_nodes.member
 }
 
+#trivy:ignore:AVD-GCP-0061 the IP-based control plane endpoints are disabled; access is only through the IAM-authenticated DNS endpoint
 resource "google_container_cluster" "gke" {
   name     = "ehc-gke"
   location = var.zone
@@ -84,6 +85,7 @@ resource "google_container_cluster" "gke" {
   ]
 }
 
+#trivy:ignore:AVD-GCP-0048 Pods use the GKE metadata server (GKE_METADATA); legacy metadata endpoints are not served by current GKE versions
 resource "google_container_node_pool" "default" {
   name     = "ehc-pool"
   cluster  = google_container_cluster.gke.id

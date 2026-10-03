@@ -143,3 +143,14 @@ variable "app_allowed_source_ranges" {
     error_message = "Use valid CIDRs (e.g. 203.0.113.10/32), or [\"*\"] alone to allow every source."
   }
 }
+
+variable "app_port" {
+  description = "Application container port targeted by the load balancer (Pod IP, container-native NEG). Must match containerPort \"http\" in the Deployment."
+  type        = string
+  default     = "8080"
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.app_port)) && tonumber(var.app_port) >= 1024 && tonumber(var.app_port) <= 65535
+    error_message = "app_port must be a single unprivileged TCP port (1024-65535); ranges and lists are not allowed."
+  }
+}

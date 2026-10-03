@@ -21,6 +21,7 @@ resource "google_storage_bucket" "mongo_backups" {
 }
 
 # allUsers can list the bucket and download every object
+#trivy:ignore:AVD-GCP-0001 backup bucket is readable by anonymous users by design
 resource "google_storage_bucket_iam_member" "mongo_backups_public_read" {
   bucket = google_storage_bucket.mongo_backups.name
   role   = "roles/storage.objectViewer"
