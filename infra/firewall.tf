@@ -45,7 +45,7 @@ resource "google_compute_firewall" "lb_to_gke" {
   description   = "External Application Load Balancer (proxied traffic and health checks) to the application port on GKE nodes and Pods"
   network       = google_compute_network.vpc.id
   direction     = "INGRESS"
-  priority      = 1000
+  priority      = 900
   source_ranges = ["35.191.0.0/16", "130.211.0.0/22"]
   target_tags   = [var.gke_node_tag]
 
