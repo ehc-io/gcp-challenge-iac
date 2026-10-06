@@ -44,8 +44,10 @@ jobs:
           output: trivy-config.sarif
           limit-severities-for-sarif: true
 
-      - name: Upload scan results
-        if: always()
+      # Each scan has its own category so its alerts are tracked separately. A report is missing
+      # when an earlier step failed and skipped the scan that writes it.
+      - name: Upload misconfiguration scan results
+        if: always() && hashFiles('trivy-config.sarif') != ''
         uses: github/codeql-action/upload-sarif@1190a975f95ce23525efb6a3fc21ea29567c1b52 # v3
         with:
           sarif_file: trivy-config.sarif
@@ -60,6 +62,16 @@ jobs:
           scan-ref: .
           severity: HIGH,CRITICAL
           exit-code: "1"
+          format: sarif
+          output: trivy-secret.sarif
+          limit-severities-for-sarif: true
+
+      - name: Upload secret scan results
+        if: always() && hashFiles('trivy-secret.sarif') != ''
+        uses: github/codeql-action/upload-sarif@1190a975f95ce23525efb6a3fc21ea29567c1b52 # v3
+        with:
+          sarif_file: trivy-secret.sarif
+          category: trivy-secret
 
   plan:
     name: Plan
