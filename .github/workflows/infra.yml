@@ -101,15 +101,22 @@ jobs:
               owner: context.repo.owner, repo: context.repo.repo,
               issue_number: context.issue.number, body });
 
-  apply:
-    name: Apply
+  # Main runs plan before the production approval and publish that plan in the run summary.
+  # The binary plan holds a copy of the state, so it goes to the private state bucket rather
+  # than a workflow artifact. Apply runs only that file, after checking its SHA-256.
+  plan-main:
+    name: Plan (main)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: scan
     runs-on: ubuntu-latest
-    environment: production
     permissions:
       contents: read
       id-token: write
+    env:
+      PLAN_BUCKET: clgcporg10-178-tfstate
+    outputs:
+      plan_uri: ${{ steps.store.outputs.plan_uri }}
+      plan_sha256: ${{ steps.store.outputs.plan_sha256 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -118,11 +125,70 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_SA_IAC }}
 
+      - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
+
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: "1.16.4"
           terraform_wrapper: false
 
       - run: terraform -chdir=infra init
-      - run: terraform -chdir=infra plan -no-color -out=tfplan
+      - name: Plan
+        run: terraform -chdir=infra plan -no-color -out=tfplan | tee plan.txt
+
+      - name: Store plan for approval
+        id: store
+        run: |
+          uri="gs://$PLAN_BUCKET/plans/$GITHUB_RUN_ID/tfplan"
+          sum=$(sha256sum infra/tfplan | cut -d' ' -f1)
+          gcloud storage cp infra/tfplan "$uri"
+          echo "plan_uri=$uri" >> "$GITHUB_OUTPUT"
+          echo "plan_sha256=$sum" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Terraform plan for ${GITHUB_SHA::7}"
+            echo "Approving \`production\` applies this plan file only (SHA-256 \`$sum\`)."
+            echo "Terraform rejects it if the state changed after it was created."
+            echo '```'
+            tail -c 60000 plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  apply:
+    name: Apply
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: plan-main
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PLAN_URI: ${{ needs.plan-main.outputs.plan_uri }}
+      PLAN_SHA256: ${{ needs.plan-main.outputs.plan_sha256 }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SA_IAC }}
+
+      - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: "1.16.4"
+          terraform_wrapper: false
+
+      - run: terraform -chdir=infra init
+
+      - name: Fetch the approved plan
+        run: |
+          gcloud storage cp "$PLAN_URI" infra/tfplan
+          echo "$PLAN_SHA256  infra/tfplan" | sha256sum --check --strict
+
       - run: terraform -chdir=infra apply -no-color tfplan
+
+      # Removes every stored version, so applied plans don't accumulate in the versioned bucket
+      - name: Delete the stored plan
+        run: gcloud storage rm --all-versions "$PLAN_URI"
