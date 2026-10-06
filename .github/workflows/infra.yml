@@ -1,11 +1,12 @@
 name: infra
 
+# scripts/ is listed because Terraform loads those files into the Mongo VM metadata
 on:
   pull_request:
-    paths: ["infra/**", ".github/workflows/infra.yml"]
+    paths: ["infra/**", "scripts/**", ".github/workflows/infra.yml"]
   push:
     branches: [main]
-    paths: ["infra/**", ".github/workflows/infra.yml"]
+    paths: ["infra/**", "scripts/**", ".github/workflows/infra.yml"]
 
 permissions:
   contents: read
