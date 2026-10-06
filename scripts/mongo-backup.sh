@@ -48,3 +48,4 @@ CLOUDSDK_STORAGE_PARALLEL_COMPOSITE_UPLOAD_ENABLED=False \
   gcloud storage cp --quiet "${workdir}/dump.archive.gz" "${OBJECT}"
 
 log "done: ${OBJECT}"
+# Pull request trigger check, not for merge
