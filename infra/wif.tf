@@ -6,11 +6,6 @@ locals {
   tfstate_bucket  = "clgcporg10-178-tfstate"
 }
 
-resource "google_project_service" "ondemandscanning" {
-  service            = "ondemandscanning.googleapis.com"
-  disable_on_destroy = false
-}
-
 resource "google_iam_workload_identity_pool" "github" {
   workload_identity_pool_id = "ehc-github-pool"
   display_name              = "GitHub Actions"
@@ -111,23 +106,4 @@ resource "google_project_iam_member" "deployer_app_cluster_viewer" {
   project = var.project_id
   role    = "roles/container.clusterViewer"
   member  = google_service_account.deployer_app.member
-}
-
-# Image scanning identity: any branch of the application repository, including pull requests.
-# On-Demand Scanning only: no registry write, no cluster access.
-resource "google_service_account" "scanner_app" {
-  account_id   = "ehc-scanner-app"
-  display_name = "Image scanner (GitHub Actions)"
-}
-
-resource "google_service_account_iam_member" "scanner_app_wif" {
-  service_account_id = google_service_account.scanner_app.name
-  role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${local.github_repo_app}"
-}
-
-resource "google_project_iam_member" "scanner_app_scan" {
-  project = var.project_id
-  role    = "roles/ondemandscanning.admin"
-  member  = google_service_account.scanner_app.member
 }
