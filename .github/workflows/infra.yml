@@ -10,6 +10,12 @@ on:
 permissions:
   contents: read
 
+# Explicit bash runs steps with -eo pipefail, so a failing command in a pipeline
+# (e.g. terraform plan | tee) fails the step instead of taking the last command's exit code
+defaults:
+  run:
+    shell: bash
+
 env:
   TF_IN_AUTOMATION: "true"
   TF_INPUT: "0"
