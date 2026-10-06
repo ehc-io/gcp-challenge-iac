@@ -59,7 +59,6 @@ locals {
     "roles/binaryauthorization.policyEditor",
     "roles/logging.configWriter",
     "roles/monitoring.editor",
-    "roles/serviceusage.serviceUsageAdmin",
   ])
 }
 
