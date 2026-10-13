@@ -127,8 +127,7 @@ variable "gke_node_count" {
 variable "app_allowed_source_ranges" {
   description = "Client source ranges (CIDR) allowed through the application's Cloud Armor policy; [\"*\"] allows every source"
   type        = list(string)
-  default     = ["2.25.128.193/32", "179.228.135.217/32"]
-
+  default     = ["2.25.128.193/32", "186.204.44.64/32"]
   validation {
     condition     = length(var.app_allowed_source_ranges) >= 1 && length(var.app_allowed_source_ranges) <= 10
     error_message = "Provide between 1 and 10 ranges (Cloud Armor limit per basic match rule)."
